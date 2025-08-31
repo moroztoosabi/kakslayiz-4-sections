@@ -1,1 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Life Advice</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <img id="logo" src="yt pp 1.png" alt="Logo">
+  <button id="shuffleBtn">SORUM GELSİN</button>
+  <div id="question-container"></div>
+
+  <script src="script.js"></script>
+  <script>
+    // Life advice questions
+    const questionsEN = [
+      "What’s the best life advice you’ve ever received?",
+      "If you could tell your younger self one thing, what would it be?",
+      "What habits improved your life the most?"
+    ];
+
+    const questionsTR = [
+      "Aldığınız en iyi hayat tavsiyesi nedir?",
+      "Genç halinize bir şey söyleyebilseydiniz ne olurdu?",
+      "Hayatınızı en çok hangi alışkanlık geliştirdi?"
+    ];
+
+    setupSlotMachine(questionsEN, questionsTR);
+  </script>
+</body>
+</html>
 
