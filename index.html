@@ -4,21 +4,92 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kakslayız Home</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: 'DIN Condensed', sans-serif;
+      background-color: #fff;
+    }
+
+    .home-container {
+      position: relative;
+      width: 300px;
+      height: 300px;
+    }
+
+    #logo {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .topic-btn {
+      position: absolute;
+      padding: 15px 30px;
+      background: none;
+      border: 2px solid black;
+      font-size: 18px;
+      text-decoration: none;
+      color: black;
+      text-align: center;
+      transition: background 0.3s ease;
+    }
+
+    .topic-btn:hover {
+      background: black;
+      color: white;
+    }
+
+    /* Position buttons around logo */
+    .top {
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      border-bottom-left-radius: 40px;
+      border-bottom-right-radius: 40px;
+    }
+
+    .bottom {
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      border-top-left-radius: 40px;
+      border-top-right-radius: 40px;
+    }
+
+    .left {
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+      border-top-right-radius: 40px;
+      border-bottom-right-radius: 40px;
+    }
+
+    .right {
+      top: 50%;
+      right: 0;
+      transform: translateY(-50%);
+      border-top-left-radius: 40px;
+      border-bottom-left-radius: 40px;
+    }
+  </style>
 </head>
 <body>
   <div class="home-container">
     <img id="logo" src="yt pp 1.png" alt="Logo">
 
-    <div class="buttons">
-      <a href="Dreams and Goals.html" class="topic-btn">Dreams and Goals</a>
-      <a href="Fun and Relatable.html" class="topic-btn">Fun and Relatable</a>
-      <a href="Emotional.html" class="topic-btn">Emotional</a>
-      <a href="people and relationships.html" class="topic-btn">people and relationships</a>
-    </div>
+    <a href="Dreams and Goals.html" class="topic-btn top">Dreams & Goals</a>
+    <a href="Fun and Relatable.html" class="topic-btn right">Fun & Relatable</a>
+    <a href="Emotional.html" class="topic-btn bottom">Emotional</a>
+    <a href="People and Relationships.html" class="topic-btn left">People & Relationships</a>
   </div>
-
-  <script src="script.js"></script>
 </body>
 </html>
-
