@@ -1,95 +1,353 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kakslayız Home</title>
-  <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      font-family: 'DIN Condensed', sans-serif;
-      background-color: #fff;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECHO - Kendini Anda Hisset</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
-    .home-container {
-      position: relative;
-      width: 300px;
-      height: 300px;
-    }
+    <style>
+        /* DESIGN BASED ON MOCKUPS [cite: 153] */
+        :root {
+            --primary: #6c5ce7; /* Purple Echo Brand Color */
+            --accent: #00b894;  /* Green Accent */
+            --dark: #1e1e2e;
+            --light: #ffffff;
+        }
 
-    #logo {
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark);
+            overflow: hidden; /* Prevent scrolling */
+        }
 
-    .topic-btn {
-      position: absolute;
-      padding: 15px 30px;
-      background: none;
-      border: 2px solid black;
-      font-size: 18px;
-      text-decoration: none;
-      color: black;
-      text-align: center;
-      transition: background 0.3s ease;
-    }
+        /* Map Container */
+        #map {
+            height: 100vh;
+            width: 100%;
+            z-index: 1;
+        }
 
-    .topic-btn:hover {
-      background: black;
-      color: white;
-    }
+        /* UI Overlays */
+        .ui-layer {
+            position: absolute;
+            z-index: 1000;
+            pointer-events: none; /* Let clicks pass through to map where needed */
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
 
-    /* Position buttons around logo */
-    .top {
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      border-bottom-left-radius: 40px;
-      border-bottom-right-radius: 40px;
-    }
+        /* Top Bar */
+        .top-bar {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 30, 46, 0.9);
+            padding: 10px 25px;
+            border-radius: 30px;
+            color: white;
+            font-weight: 800;
+            font-size: 1.2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-    .bottom {
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      border-top-left-radius: 40px;
-      border-top-right-radius: 40px;
-    }
+        /* Bottom Action Bar */
+        .action-bar {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            pointer-events: auto;
+        }
 
-    .left {
-      top: 50%;
-      left: 0;
-      transform: translateY(-50%);
-      border-top-right-radius: -40px;
-      border-bottom-right-radius: 40px;
-    }
+        .btn {
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+        }
 
-    .right {
-      top: 50%;
-      right: 0;
-      transform: translateY(-50%);
-      border-top-left-radius: -40px;
-      border-bottom-left-radius: 40px;
-    }
-  </style>
+        .btn:active { transform: scale(0.95); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #a29bfe);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--dark);
+        }
+
+        /* Modal for Dropping an Echo */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            width: 80%;
+            max-width: 350px;
+            z-index: 2000;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            pointer-events: auto;
+            text-align: center;
+        }
+
+        .modal h2 { margin-top: 0; color: var(--dark); }
+        
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            font-family: inherit;
+            resize: none;
+            box-sizing: border-box;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #888;
+        }
+
+        /* Custom Popup Style */
+        .leaflet-popup-content-wrapper {
+            border-radius: 15px;
+            padding: 5px;
+        }
+        .leaflet-popup-content {
+            font-family: 'Inter', sans-serif;
+        }
+        .echo-tag {
+            font-size: 0.8rem;
+            color: var(--primary);
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Loading Screen */
+        #loader {
+            position: fixed;
+            top:0; left:0; width:100%; height:100%;
+            background: var(--dark);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .pulse {
+            animation: pulse-animation 2s infinite;
+        }
+        @keyframes pulse-animation {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+    </style>
 </head>
 <body>
-  <div class="home-container">
-    <img id="logo" src="yt pp 1.png" alt="Logo">
 
-    <a href="Dreams and Goals.html" class="topic-btn top">Dreams & Goals</a>
-    <a href="Fun and Relatable.html" class="topic-btn right">Fun & Relatable</a>
-    <a href="Emotional.html" class="topic-btn bottom">Emotional</a>
-    <a href="People and Relationships.html" class="topic-btn left">People & Relationships</a>
-  </div>
+    <div id="loader">
+        <h1 class="pulse">ECHO</h1>
+        <p>Konum verisi alınıyor...</p>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="ui-layer">
+        <div class="top-bar">
+            <span>ECHO</span>
+        </div>
+
+        <div id="dropModal" class="modal">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <h2>Buraya Bir İz Bırak</h2>
+            <p style="font-size: 0.9rem; color: #666;">Bu konumda dijital bir anı oluşturuyorsunuz.</p>
+            <textarea id="echoContent" placeholder="Ne hissediyorsun? Hikayen ne?"></textarea>
+            <button class="btn btn-primary" onclick="saveEcho()">Buraya Sabitle</button>
+        </div>
+
+        <div class="action-bar">
+            <button class="btn btn-secondary" onclick="alert('AR Modu: Bu özellik mobil uygulama ve kamera izni gerektirir. (Prototip)')">📷 AR Görünüm</button>
+            <button class="btn btn-primary" onclick="openModal()">📍 İz Bırak</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // --- 1. INITIAL SETUP ---
+        let map;
+        let userMarker;
+        let userLat, userLng;
+        const echoes = JSON.parse(localStorage.getItem('echoes')) || []; // Load saved echoes
+
+        // Initialize Map
+        function initMap(lat, lng) {
+            // Create map centered on user
+            map = L.map('map').setView([lat, lng], 17); // Zoom level 17 for close "street" feel
+
+            // Add Dark Map Tiles (CartoDB Dark Matter) to match Echo aesthetic [cite: 153]
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(map);
+
+            // Add User Marker (Blue Dot)
+            const userIcon = L.divIcon({
+                className: 'user-location-marker',
+                html: '<div style="background-color: #6c5ce7; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>',
+                iconSize: [20, 20]
+            });
+            
+            userMarker = L.marker([lat, lng], {icon: userIcon}).addTo(map)
+                .bindPopup("Sen Buradasın");
+
+            // Load existing Echoes onto the map
+            loadEchoesOnMap();
+
+            // Hide loader
+            document.getElementById('loader').style.display = 'none';
+        }
+
+        // --- 2. GEOLOCATION LOGIC  ---
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    userLat = position.coords.latitude;
+                    userLng = position.coords.longitude;
+
+                    // If map exists, update user position, else init map
+                    if (map) {
+                        userMarker.setLatLng([userLat, userLng]);
+                    } else {
+                        initMap(userLat, userLng);
+                    }
+                },
+                (error) => {
+                    alert("Konum izni verilmedi. Varsayılan konum (Istanbul) kullanılıyor.");
+                    // Fallback to Istanbul coordinates if denied
+                    initMap(41.0082, 28.9784);
+                    userLat = 41.0082;
+                    userLng = 28.9784;
+                },
+                { enableHighAccuracy: true }
+            );
+        } else {
+            alert("Tarayıcınız konum servisini desteklemiyor.");
+        }
+
+        // --- 3. DROP ECHO LOGIC [cite: 94, 95] ---
+        function openModal() {
+            document.getElementById('dropModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('dropModal').style.display = 'none';
+        }
+
+        function saveEcho() {
+            const content = document.getElementById('echoContent').value;
+            if (!content) return alert("Lütfen bir şeyler yazın!");
+
+            const newEcho = {
+                id: Date.now(),
+                lat: userLat, // Lock to current location
+                lng: userLng,
+                text: content,
+                date: new Date().toLocaleDateString('tr-TR'),
+                user: "Ben" // Anonymous user for demo
+            };
+
+            // Save to LocalStorage (Simulating Database) 
+            echoes.push(newEcho);
+            localStorage.setItem('echoes', JSON.stringify(echoes));
+
+            // Add to map visually
+            addMarkerToMap(newEcho);
+
+            // Clean up
+            document.getElementById('echoContent').value = "";
+            closeModal();
+            
+            // Animation/Feedback
+            alert("Echo başarıyla bırakıldı! Sadece burada olanlar görebilecek.");
+        }
+
+        // --- 4. DISCOVERY LOGIC  ---
+        function addMarkerToMap(echo) {
+            // Different icon for Echoes vs User
+            const echoIcon = L.divIcon({
+                html: `<div style="background-color: #00b894; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">💬</div>`,
+                className: 'echo-marker',
+                iconSize: [30, 30]
+            });
+
+            const marker = L.marker([echo.lat, echo.lng], {icon: echoIcon}).addTo(map);
+
+            // Popup content
+            const popupContent = `
+                <div style="text-align:center;">
+                    <div class="echo-tag">ECHO</div>
+                    <p style="font-size: 1.1rem; margin: 5px 0;">"${echo.text}"</p>
+                    <small style="color: #999;">📅 ${echo.date}</small>
+                </div>
+            `;
+            
+            marker.bindPopup(popupContent);
+        }
+
+        function loadEchoesOnMap() {
+            // Simulate some "Existing" echoes near the user for demo purposes
+            // In a real app, this would come from a Server API
+            if (echoes.length === 0) {
+                 // Add a fake demo echo slightly offset from user
+                 const demoEcho = {
+                     lat: userLat + 0.0002, 
+                     lng: userLng + 0.0002, 
+                     text: "Burası manzara harika! - Ali", 
+                     date: "Bugün"
+                 };
+                 addMarkerToMap(demoEcho);
+            }
+
+            echoes.forEach(echo => {
+                addMarkerToMap(echo);
+            });
+        }
+    </script>
 </body>
 </html>
