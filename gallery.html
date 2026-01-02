@@ -1,1 +1,84 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galeri - ECHO</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        .gallery-container {
+            padding: 80px 20px 20px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .echo-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+        .echo-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+        }
+        .card-content {
+            padding: 15px;
+        }
+        .back-btn {
+            position: fixed;
+            top: 20px; left: 20px;
+            background: rgba(30, 30, 46, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            text-decoration: none;
+            backdrop-filter: blur(5px);
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
 
+    <a href="index.html" class="back-btn">← Haritaya Dön</a>
+
+    <div class="gallery-container">
+        <h1 style="color:white; margin-bottom: 30px;">ECHO Akışı</h1>
+        <div id="galleryGrid" class="gallery-grid">
+            </div>
+    </div>
+
+    <script>
+        const grid = document.getElementById('galleryGrid');
+        const echoes = JSON.parse(localStorage.getItem('echoes_db')) || [];
+
+        // Filter only echoes that have images
+        const photoEchoes = echoes.filter(e => e.image);
+
+        if (photoEchoes.length === 0) {
+            grid.innerHTML = '<p style="color:#888;">Henüz hiç fotoğraf paylaşılmadı.</p>';
+        } else {
+            // Show newest first
+            photoEchoes.reverse().forEach(echo => {
+                const card = `
+                    <div class="echo-card">
+                        <img src="${echo.image}" alt="Echo">
+                        <div class="card-content">
+                            <strong style="color: #6c5ce7;">${echo.user}</strong>
+                            <p style="color: #ddd; margin: 5px 0;">${echo.text}</p>
+                            <small style="color: #888;">📍 ${echo.timestamp}</small>
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += card;
+            });
+        }
+    </script>
+</body>
+</html>
