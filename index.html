@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECHO - Map</title>
+    <title>ECHO - Harita</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -19,22 +19,28 @@
                 <span id="userDisplay">Misafir</span>
                 <a href="#" onclick="logout()" class="logout-btn">Çıkış</a>
             </div>
-            <div style="font-weight:800; color: white;">ECHO</div>
+            <a href="gallery.html" class="gallery-btn">🖼️ Galeri</a>
         </div>
 
         <div class="action-bar">
-            <button class="btn btn-secondary" onclick="alert('AR Kamera Modu henüz aktif değil.')">
-                📷 AR Modu
-            </button>
-            <button class="btn btn-primary" onclick="openDropModal()">
-                📍 İz Bırak
-            </button>
+            <button class="btn btn-secondary" onclick="alert('AR Kamera Modu (V2.0)')">📷 AR Modu</button>
+            <button class="btn btn-primary" onclick="openDropModal()">📍 İz Bırak</button>
         </div>
 
         <div id="dropModal" class="modal">
-            <h3 style="margin-top:0;">Buraya bir not bırak</h3>
+            <h3 style="margin-top:0;">Buraya bir iz bırak</h3>
+            
             <textarea id="echoText" placeholder="Hikayen nedir?"></textarea>
-            <div style="display:flex; gap:10px;">
+            
+            <div class="file-upload-wrapper">
+                <label for="echoImage" class="file-label">📷 Fotoğraf Ekle</label>
+                <input type="file" id="echoImage" accept="image/*" onchange="previewImage()">
+                <div id="imagePreviewContainer" style="display:none; margin-top:10px;">
+                    <img id="imagePreview" src="" style="max-height: 100px; border-radius: 8px;">
+                </div>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top: 15px;">
                 <button class="btn btn-primary" style="flex:1" onclick="saveEcho()">Paylaş</button>
                 <button class="btn btn-secondary" style="flex:1" onclick="closeDropModal()">İptal</button>
             </div>
