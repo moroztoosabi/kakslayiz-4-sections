@@ -1,1 +1,44 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş Yap - ECHO</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo-big">ECHO</div>
+        <p class="tagline">Kendini anda hisset.</p>
+        
+        <div class="login-form">
+            <input type="text" id="usernameInput" placeholder="Kullanıcı Adı" autocomplete="off">
+            <button class="btn btn-primary" style="width: 100%;" onclick="handleLogin()">Giriş Yap</button>
+        </div>
+        
+        <p style="margin-top: 20px; font-size: 0.8rem; color: #666;">
+            Prototip Sürüm v1.0 <br>
+            GitHub: ECHO-Project
+        </p>
+    </div>
 
+    <script>
+        // Check if already logged in
+        if(localStorage.getItem('echo_user')) {
+            window.location.href = 'index.html';
+        }
+
+        function handleLogin() {
+            const username = document.getElementById('usernameInput').value;
+            if(username.trim() === "") {
+                alert("Lütfen bir isim girin.");
+                return;
+            }
+            // Save user to simulated session
+            localStorage.setItem('echo_user', username);
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
