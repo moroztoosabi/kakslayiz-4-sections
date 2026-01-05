@@ -5,12 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ECHO - Kendini Anda Hisset</title>
     
-    <!-- Leaflet CSS (Map) -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Performance Optimizations -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://basemaps.cartocdn.com">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&display=swap" rel="stylesheet">
 
     <style>
         /* --- 1. CORE VARIABLES & RESET --- */
@@ -31,7 +36,7 @@
             font-family: 'Inter', sans-serif;
             background-color: var(--darker);
             color: var(--text);
-            overflow: hidden; /* Prevent scrolling, app-like feel */
+            overflow: hidden; /* Prevent scrolling */
             height: 100vh;
             width: 100vw;
         }
@@ -50,63 +55,27 @@
         .view-section.active { display: block; }
 
         /* Map View */
-        #map-view { 
-            z-index: 1; 
-            padding-bottom: 0; 
-            height: 100vh; 
-            width: 100vw;
+        #map-view { z-index: 1; padding-bottom: 0; height: 100vh; width: 100vw; }
+        #map { height: 100%; width: 100%; background: #242424; z-index: 0; }
+
+        /* --- LOGIN SCREEN --- */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--darker);
+            z-index: 3000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 30px;
         }
-        #map { 
-            height: 100%; 
-            width: 100%; 
-            background: #242424; 
-            z-index: 0;
-        }
+        .login-logo { font-size: 4rem; font-weight: 900; background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
 
         /* --- MAP POPUP STYLES --- */
-        .leaflet-popup-content-wrapper {
-            border-radius: 15px;
-            padding: 0;
-            overflow: hidden;
-            color: var(--dark);
-        }
-        .leaflet-popup-content {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            min-width: 200px;
-        }
-        .echo-popup-header {
-            background: var(--primary);
-            color: white;
-            padding: 8px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            text-align: center;
-            text-transform: uppercase;
-        }
-        .echo-popup-body {
-            padding: 10px;
-            text-align: center;
-        }
-        .echo-popup-text {
-            font-size: 1rem;
-            margin: 5px 0;
-            font-weight: 600;
-        }
-        .echo-popup-date {
-            display: block;
-            font-size: 0.7rem;
-            color: #888;
-            margin-top: 5px;
-        }
-        .echo-popup-img {
-            width: 100%;
-            border-radius: 8px;
-            margin-top: 8px;
-            max-height: 150px;
-            object-fit: cover;
-            border: 1px solid #eee;
-        }
+        .leaflet-popup-content-wrapper { border-radius: 15px; padding: 0; overflow: hidden; color: var(--dark); }
+        .leaflet-popup-content { font-family: 'Inter', sans-serif; margin: 0; min-width: 200px; }
+        .echo-popup-header { background: var(--primary); color: white; padding: 8px; font-size: 0.8rem; font-weight: bold; text-align: center; text-transform: uppercase; }
+        .echo-popup-body { padding: 10px; text-align: center; }
+        .echo-popup-text { font-size: 1rem; margin: 5px 0; font-weight: 600; }
+        .echo-popup-date { display: block; font-size: 0.7rem; color: #888; margin-top: 5px; }
+        .echo-popup-img { width: 100%; border-radius: 8px; margin-top: 8px; max-height: 150px; object-fit: cover; border: 1px solid #eee; }
 
         /* Gallery View */
         #gallery-view { z-index: 5; background: var(--darker); overflow-y: auto; padding-top: 80px; }
@@ -117,7 +86,12 @@
 
         /* Profile View */
         #profile-view { z-index: 6; background: var(--darker); overflow-y: auto; padding-top: 0; }
-        .profile-header { background: linear-gradient(180deg, rgba(108, 92, 231, 0.2) 0%, var(--darker) 100%); padding: 80px 20px 20px 20px; text-align: center; }
+        .profile-header { 
+            background: linear-gradient(180deg, rgba(108, 92, 231, 0.2) 0%, var(--darker) 100%); 
+            padding: 80px 20px 20px 20px; 
+            text-align: center; 
+            position: relative; /* For absolute positioning of side button */
+        }
         .profile-avatar { width: 100px; height: 100px; background: var(--primary); border-radius: 50%; margin: 0 auto 15px auto; display: flex; justify-content: center; align-items: center; font-size: 3rem; font-weight: 800; color: white; border: 4px solid var(--darker); box-shadow: 0 0 20px rgba(108, 92, 231, 0.4); }
         .profile-name { font-size: 1.5rem; font-weight: 800; margin-bottom: 5px; }
         .profile-role { color: var(--accent); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 20px;}
@@ -125,6 +99,25 @@
         .stat-box { text-align: center; }
         .stat-num { font-size: 1.2rem; font-weight: 800; }
         .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; }
+        
+        /* Side Button (Top Right of Profile) */
+        .profile-side-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 1.2rem;
+        }
+        .profile-side-btn:active { transform: scale(0.9); background: var(--primary); }
+
         .profile-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; }
         .tab-item { flex: 1; text-align: center; padding: 15px; color: #888; cursor: pointer; position: relative; }
         .tab-item.active { color: white; font-weight: 600; }
@@ -167,41 +160,16 @@
         .btn-primary { background: var(--primary); color: white; }
         .btn-outline { background: transparent; border: 1px solid #555; color: #aaa; margin-top: 10px; }
         
-        /* Updated Photo Upload Style */
-        .photo-upload-label { 
-            display: block;
-            border: 2px dashed #444; 
-            border-radius: 12px; 
-            padding: 20px; 
-            text-align: center; 
-            margin-bottom: 15px; 
-            cursor: pointer; 
-            position: relative; 
-            transition: 0.2s;
-            background: rgba(0,0,0,0.2);
-        }
+        .photo-upload-label { display: block; border: 2px dashed #444; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 15px; cursor: pointer; position: relative; transition: 0.2s; background: rgba(0,0,0,0.2); }
         .photo-upload-label:active { background: rgba(255,255,255,0.05); border-color: var(--primary); }
         .photo-upload-label img { max-width: 100%; max-height: 200px; border-radius: 8px; display: none; margin: 10px auto 0 auto; border: 1px solid #555; }
         
-        #remove-photo-btn {
-            display: none;
-            width: 100%;
-            background: #ff7675;
-            color: white;
-            padding: 8px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            border: none;
-            margin-top: 5px;
-            cursor: pointer;
-            text-align: center;
-        }
-
-        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--darker); z-index: 3000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px; }
-        .login-logo { font-size: 4rem; font-weight: 900; background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+        #remove-photo-btn { display: none; width: 100%; background: #ff7675; color: white; padding: 8px; border-radius: 8px; font-size: 0.9rem; border: none; margin-top: 5px; cursor: pointer; text-align: center; }
     </style>
 </head>
 <body>
+
+    <!-- --- LOGIN SCREEN --- -->
     <div id="login-screen">
         <div class="login-logo">ECHO</div>
         <p style="color:#888; margin-bottom:40px;">Kendini anda hisset.</p>
@@ -232,6 +200,11 @@
         <!-- 3. Profile View -->
         <div id="profile-view" class="view-section">
             <div class="profile-header">
+                <!-- Side Button -->
+                <div class="profile-side-btn" onclick="alert('Mobil Uygulama çok yakında App Store\'da!')">
+                    <i class="ph ph-device-mobile"></i>
+                </div>
+
                 <div class="profile-avatar" id="profile-initial">A</div>
                 <div class="profile-name" id="profile-name-text">Ali Yılmaz</div>
                 <div class="profile-role">Yeni Medya Kaşifi</div>
@@ -268,7 +241,6 @@
                 <h2 style="margin-top:0;">İz Bırak</h2>
                 <textarea id="drop-text" placeholder="Ne düşünüyorsun?"></textarea>
                 
-                <!-- Improved Photo Upload UI with Label -->
                 <label class="photo-upload-label" for="drop-file">
                     <i class="ph ph-camera-plus" style="font-size: 2rem; color: #888;"></i>
                     <p style="margin:5px 0; color:#888; font-size:0.8rem;">Fotoğraf Seç veya Çek</p>
@@ -276,7 +248,6 @@
                 </label>
                 <div id="remove-photo-btn" onclick="removePhoto()">Fotoğrafı Kaldır</div>
                 
-                <!-- Native File Input -->
                 <input type="file" id="drop-file" accept="image/*" style="display:none;" onchange="handleFileSelect(this)">
                 
                 <button class="btn btn-primary" onclick="saveEcho()">Paylaş</button>
@@ -285,17 +256,25 @@
         </div>
     </div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet JS - CDNJS (Faster) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 
     <script>
         let currentUser = null;
         let map = null;
         let userMarker = null;
         let userPos = { lat: 41.0082, lng: 28.9784 }; // Default Istanbul
-        let echoes = JSON.parse(localStorage.getItem('echo_db')) || [];
+        let echoes = [];
         let currentPhotoBase64 = null;
 
+        // Load DB safely
+        try {
+            echoes = JSON.parse(localStorage.getItem('echo_db')) || [];
+        } catch (e) {
+            echoes = [];
+        }
+
+        // --- AUTH CHECK (Runs in background) ---
         function checkAuth() {
             const savedUser = localStorage.getItem('echo_user');
             if (savedUser) {
@@ -303,10 +282,14 @@
                 document.getElementById('displayUser').innerText = currentUser;
                 document.getElementById('profile-name-text').innerText = currentUser;
                 document.getElementById('profile-initial').innerText = currentUser.charAt(0).toUpperCase();
+                
+                // Set App state
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app-container').style.display = 'block';
                 
-                setTimeout(() => { initApp(); }, 100);
+                requestAnimationFrame(() => {
+                    initApp();
+                });
             }
         }
         
@@ -314,7 +297,15 @@
             const input = document.getElementById('usernameInput').value;
             if(!input) return alert("İsim giriniz");
             localStorage.setItem('echo_user', input);
-            checkAuth();
+            
+            // Re-run auth flow manually
+            currentUser = input;
+            document.getElementById('displayUser').innerText = currentUser;
+            document.getElementById('profile-name-text').innerText = currentUser;
+            document.getElementById('profile-initial').innerText = currentUser.charAt(0).toUpperCase();
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-container').style.display = 'block';
+            initApp();
         }
 
         function logout() {
@@ -350,7 +341,10 @@
             userMarker = L.marker([userPos.lat, userPos.lng], {icon: userIcon}).addTo(map);
 
             renderMapEchoes();
-            setTimeout(() => { map.invalidateSize(); }, 500);
+            
+            map.whenReady(() => {
+                map.invalidateSize();
+            });
         }
 
         function startLocationTracking() {
@@ -358,7 +352,7 @@
                 navigator.geolocation.watchPosition(pos => {
                     userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                     if(map) userMarker.setLatLng([userPos.lat, userPos.lng]);
-                }, err => console.log("GPS Error", err));
+                }, err => console.log("GPS Error", err), { enableHighAccuracy: true, timeout: 5000 });
             }
         }
 
@@ -373,7 +367,7 @@
             if(navEl) navEl.classList.add('active');
 
             if(viewName === 'profile') renderProfile();
-            if(viewName === 'map' && map) setTimeout(() => { map.invalidateSize(); }, 100);
+            if(viewName === 'map' && map) requestAnimationFrame(() => map.invalidateSize());
         }
 
         function openDropModal() { document.getElementById('drop-modal').classList.add('open'); }
@@ -383,20 +377,16 @@
             removePhoto();
         }
 
-        // --- COMPRESSED IMAGE HANDLER ---
         function handleFileSelect(input) {
             if (input.files && input.files[0]) {
                 const file = input.files[0];
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    // Create an image object to load the file
                     const img = new Image();
                     img.onload = function() {
-                        // Canvas for resizing
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
                         
-                        // Resize logic (Max 800px width)
                         const MAX_WIDTH = 800;
                         let width = img.width;
                         let height = img.height;
@@ -410,10 +400,8 @@
                         canvas.height = height;
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // Compress to JPEG 70% quality
                         currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
                         
-                        // Show preview
                         const preview = document.getElementById('preview-img');
                         preview.src = currentPhotoBase64;
                         preview.style.display = 'block';
@@ -447,7 +435,6 @@
                 date: new Date().toLocaleDateString('tr-TR')
             };
             
-            // Try-Catch to handle Storage Full errors
             try {
                 echoes.push(newEcho);
                 localStorage.setItem('echo_db', JSON.stringify(echoes));
@@ -457,8 +444,8 @@
                 closeDropModal();
                 alert("Echo başarıyla bırakıldı! 📍");
             } catch (e) {
-                alert("Hafıza dolu! Lütfen bazı eski izleri silin veya daha küçük bir fotoğraf yükleyin.");
-                echoes.pop(); // Remove the failed echo from array
+                alert("Hafıza dolu! Lütfen bazı eski izleri silin.");
+                echoes.pop();
             }
         }
 
@@ -474,8 +461,6 @@
 
         function renderMapEchoes() {
             if(!map) return;
-            // Note: In real app use markers.clearLayers(). For prototype we are appending.
-            
             echoes.forEach(echo => {
                 const echoIcon = L.divIcon({
                     html: `<div style="background-color: #00b894; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">${echo.image ? '📷' : '💬'}</div>`,
@@ -484,9 +469,7 @@
                 });
 
                 const marker = L.marker([echo.lat, echo.lng], {icon: echoIcon}).addTo(map);
-                
                 let imgHtml = echo.image ? `<img src="${echo.image}" class="echo-popup-img">` : '';
-                
                 const popupContent = `
                     <div class="echo-popup-header">ECHO</div>
                     <div class="echo-popup-body">
