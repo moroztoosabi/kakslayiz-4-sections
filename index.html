@@ -51,6 +51,28 @@
         /* Map View */
         #map-view { z-index: 1; padding-bottom: 0; }
         #map { height: 100%; width: 100%; background: #242424; }
+        
+        /* Custom Map Marker Styling (Text Bubbles) */
+        .echo-map-bubble {
+            background: rgba(30, 30, 46, 0.95);
+            border: 2px solid var(--primary);
+            border-radius: 20px 20px 20px 0; /* Speech bubble shape */
+            padding: 8px 12px;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: flex; align-items: center; gap: 6px;
+            transform: translateY(-100%); /* Anchor bottom-left */
+            transition: transform 0.2s;
+        }
+        .echo-map-bubble:active { transform: translateY(-100%) scale(0.95); }
+        .echo-map-bubble i { font-size: 1rem; color: var(--primary); }
+        
+        /* Photo Variant */
+        .echo-map-bubble.photo-type { border-color: var(--accent); }
+        .echo-map-bubble.photo-type i { color: var(--accent); }
 
         /* AR View */
         #ar-view { 
@@ -550,6 +572,11 @@
             else stopCamera();
 
             if(viewName === 'profile') renderProfile();
+            
+            // FIX: Map needs resize when showing from hidden state
+            if(viewName === 'map' && map) {
+                setTimeout(() => { map.invalidateSize(); }, 200);
+            }
         }
 
         // --- AR SYSTEM ---
@@ -656,17 +683,31 @@
         // --- RENDERERS ---
         function renderMapEchoes() {
             if(!map) return;
-            // Note: In a real app we would clear markers first. 
-            // For prototype we rely on simple map logic.
+            // Clear logic omitted for simplicity; reloading page cleans markers in this prototype
+            
             echoes.forEach(echo => {
-                const iconHtml = echo.image ? '📷' : '💬';
+                const isPhoto = !!echo.image;
+                const displayText = echo.text 
+                    ? (echo.text.length > 12 ? echo.text.substring(0,12)+'...' : echo.text) 
+                    : 'Fotoğraf';
+                
+                const iconHtml = isPhoto ? '<i class="ph ph-image"></i>' : '<i class="ph ph-chat-text"></i>';
+
                 const marker = L.marker([echo.lat, echo.lng], {
                     icon: L.divIcon({
-                        className: 'echo-marker',
-                        html: `<div style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">${iconHtml}</div>`
+                        className: '', // reset default
+                        html: `
+                            <div class="echo-map-bubble ${isPhoto ? 'photo-type' : ''}">
+                                ${iconHtml}
+                                <span>${displayText}</span>
+                            </div>
+                        `,
+                        iconSize: [100, 40], // Estimate
+                        iconAnchor: [10, 35] // Bottom left anchor logic roughly
                     })
                 }).addTo(map);
                 
+                // Full content on click
                 let popupContent = `<b>${echo.user}</b><br>${echo.text}`;
                 if(echo.image) popupContent += `<br><img src="${echo.image}" style="width:100px; border-radius:5px; margin-top:5px;">`;
                 marker.bindPopup(popupContent);
