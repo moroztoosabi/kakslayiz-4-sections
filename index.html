@@ -49,7 +49,7 @@
         }
         .view-section.active { display: block; }
 
-        /* Map View - FORCE HEIGHT */
+        /* Map View */
         #map-view { 
             z-index: 1; 
             padding-bottom: 0; 
@@ -59,29 +59,48 @@
         #map { 
             height: 100%; 
             width: 100%; 
-            background: #242424; /* Fallback color if tiles fail */
+            background: #242424; 
             z-index: 0;
         }
 
-        /* Custom Map Marker Styling (Text Bubbles) */
-        .echo-map-bubble {
-            background: rgba(30, 30, 46, 0.95);
-            border: 2px solid var(--primary);
-            border-radius: 20px 20px 20px 0; /* Speech bubble shape */
-            padding: 8px 12px;
-            color: white;
-            font-size: 0.75rem;
-            font-weight: 600;
-            white-space: nowrap;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            display: flex; align-items: center; gap: 6px;
-            transform: translateY(-100%); /* Anchor bottom-left */
-            transition: transform 0.2s;
+        /* --- MAP POPUP STYLES (From First Code) --- */
+        .leaflet-popup-content-wrapper {
+            border-radius: 15px;
+            padding: 5px;
+            color: var(--dark);
         }
-        .echo-map-bubble:active { transform: translateY(-100%) scale(0.95); }
-        .echo-map-bubble i { font-size: 1rem; color: var(--primary); }
-        .echo-map-bubble.photo-type { border-color: var(--accent); }
-        .echo-map-bubble.photo-type i { color: var(--accent); }
+        .leaflet-popup-content {
+            font-family: 'Inter', sans-serif;
+            min-width: 200px;
+        }
+        .echo-tag {
+            font-size: 0.8rem;
+            color: var(--primary);
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .echo-popup-text {
+            font-size: 1rem;
+            text-align: center;
+            margin: 5px 0;
+            font-weight: 500;
+        }
+        .echo-popup-date {
+            display: block;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 5px;
+        }
+        .echo-popup-img {
+            width: 100%;
+            border-radius: 8px;
+            margin-top: 5px;
+            max-height: 150px;
+            object-fit: cover;
+        }
 
         /* Gallery View */
         #gallery-view { z-index: 5; background: var(--darker); overflow-y: auto; padding-top: 80px; }
@@ -119,7 +138,7 @@
             position: absolute; bottom: 25px; left: 15px; right: 15px; 
             background: var(--glass); backdrop-filter: blur(15px); 
             border-radius: 30px; height: 70px; 
-            display: flex; justify-content: space-around; /* Balanced Spacing */
+            display: flex; justify-content: space-around; 
             align-items: center; padding: 0 15px; 
             z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
             border: 1px solid rgba(255,255,255,0.1); 
@@ -130,6 +149,7 @@
         .nav-fab { background: var(--primary); width: 55px; height: 55px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 1.8rem; transform: translateY(-25px); box-shadow: 0 10px 25px rgba(108, 92, 231, 0.5); border: 4px solid var(--darker); cursor: pointer; }
         .nav-fab:active { transform: translateY(-22px) scale(0.95); }
 
+        /* Modal & Forms */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; display: none; justify-content: center; align-items: flex-end; }
         .modal.open { display: flex; animation: slideUp 0.3s ease; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -141,8 +161,31 @@
         .btn-primary { background: var(--primary); color: white; }
         .btn-outline { background: transparent; border: 1px solid #555; color: #aaa; margin-top: 10px; }
         
-        .photo-upload-box { border: 2px dashed #444; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 15px; cursor: pointer; position: relative; }
-        .photo-upload-box img { max-width: 100%; max-height: 200px; border-radius: 8px; display: none; margin-top: 10px; }
+        /* Updated Photo Upload Style */
+        .photo-upload-box { 
+            border: 2px dashed #444; 
+            border-radius: 12px; 
+            padding: 20px; 
+            text-align: center; 
+            margin-bottom: 15px; 
+            cursor: pointer; 
+            position: relative; 
+            transition: 0.2s;
+        }
+        .photo-upload-box:active { background: rgba(255,255,255,0.05); border-color: var(--primary); }
+        .photo-upload-box img { max-width: 100%; max-height: 200px; border-radius: 8px; display: none; margin-top: 10px; border: 1px solid #555; }
+        
+        #remove-photo-btn {
+            display: none;
+            background: #ff7675;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            border: none;
+            margin-top: 5px;
+            cursor: pointer;
+        }
 
         #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--darker); z-index: 3000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px; }
         .login-logo { font-size: 4rem; font-weight: 900; background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
@@ -214,12 +257,17 @@
             <div class="modal-content">
                 <h2 style="margin-top:0;">İz Bırak</h2>
                 <textarea id="drop-text" placeholder="Ne düşünüyorsun?"></textarea>
-                <div class="photo-upload-box" onclick="document.getElementById('drop-file').click()">
+                
+                <!-- Improved Photo Upload UI -->
+                <div class="photo-upload-box" onclick="triggerFileInput()">
                     <i class="ph ph-camera-plus" style="font-size: 2rem; color: #888;"></i>
-                    <p style="margin:5px 0; color:#888; font-size:0.8rem;">Fotoğraf Ekle</p>
+                    <p style="margin:5px 0; color:#888; font-size:0.8rem;">Fotoğraf Ekle (Tıkla)</p>
                     <img id="preview-img">
+                    <button id="remove-photo-btn" onclick="removePhoto(event)">Fotoğrafı Kaldır</button>
                 </div>
-                <input type="file" id="drop-file" accept="image/*" hidden onchange="handleFileSelect(this)">
+                <!-- File input is hidden but accessible -->
+                <input type="file" id="drop-file" accept="image/*" style="display:none;" onchange="handleFileSelect(this)">
+                
                 <button class="btn btn-primary" onclick="saveEcho()">Paylaş</button>
                 <button class="btn btn-outline" onclick="closeDropModal()">İptal</button>
             </div>
@@ -282,15 +330,15 @@
             map = L.map('map', { zoomControl: false }).setView([userPos.lat, userPos.lng], 15);
             
             // Try Dark Tiles, Fallback to OSM if needed
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 attribution: 'ECHO',
                 maxZoom: 20
             }).addTo(map);
 
-            // User Marker
+            // User Marker (Style from Snippet)
             const userIcon = L.divIcon({
-                className: 'user-marker',
-                html: `<div style="width:16px; height:16px; background:#6c5ce7; border:3px solid white; border-radius:50%; box-shadow: 0 0 15px #6c5ce7;"></div>`,
+                className: 'user-location-marker',
+                html: '<div style="background-color: #6c5ce7; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>',
                 iconSize: [20, 20]
             });
             userMarker = L.marker([userPos.lat, userPos.lng], {icon: userIcon}).addTo(map);
@@ -337,7 +385,14 @@
             document.getElementById('drop-modal').classList.remove('open');
             document.getElementById('drop-text').value = '';
             document.getElementById('preview-img').style.display = 'none';
+            document.getElementById('remove-photo-btn').style.display = 'none';
+            document.getElementById('drop-file').value = ""; // Reset input
             currentPhotoBase64 = null;
+        }
+
+        // --- NEW PHOTO HANDLERS ---
+        function triggerFileInput() {
+            document.getElementById('drop-file').click();
         }
 
         function handleFileSelect(input) {
@@ -348,14 +403,24 @@
                     const img = document.getElementById('preview-img');
                     img.src = currentPhotoBase64;
                     img.style.display = 'block';
+                    document.getElementById('remove-photo-btn').style.display = 'inline-block';
                 }
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
+        function removePhoto(e) {
+            e.stopPropagation(); // Stop click from triggering upload again
+            currentPhotoBase64 = null;
+            document.getElementById('preview-img').style.display = 'none';
+            document.getElementById('preview-img').src = "";
+            document.getElementById('remove-photo-btn').style.display = 'none';
+            document.getElementById('drop-file').value = "";
+        }
+
         function saveEcho() {
             const text = document.getElementById('drop-text').value;
-            if(!text && !currentPhotoBase64) return alert("Boş içerik gönderilemez.");
+            if(!text && !currentPhotoBase64) return alert("Lütfen yazı veya fotoğraf ekleyin.");
 
             const newEcho = {
                 id: Date.now(),
@@ -364,7 +429,7 @@
                 image: currentPhotoBase64,
                 lat: userPos.lat,
                 lng: userPos.lng,
-                date: new Date().toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})
+                date: new Date().toLocaleDateString('tr-TR')
             };
             echoes.push(newEcho);
             localStorage.setItem('echo_db', JSON.stringify(echoes));
@@ -387,33 +452,28 @@
 
         function renderMapEchoes() {
             if(!map) return;
-            // For prototype simplicty we don't clear old markers, 
-            // In a real app we would use a LayerGroup.
+            // Note: In real app use markers.clearLayers(). For prototype we are appending.
             
             echoes.forEach(echo => {
-                const isPhoto = !!echo.image;
-                const displayText = echo.text 
-                    ? (echo.text.length > 12 ? echo.text.substring(0,12)+'...' : echo.text) 
-                    : 'Fotoğraf';
-                
-                const iconHtml = isPhoto ? '<i class="ph ph-image"></i>' : '<i class="ph ph-chat-text"></i>';
+                // Style from User Snippet (Green Bubbles)
+                const echoIcon = L.divIcon({
+                    html: `<div style="background-color: #00b894; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">${echo.image ? '📷' : '💬'}</div>`,
+                    className: 'echo-marker',
+                    iconSize: [30, 30]
+                });
 
-                const marker = L.marker([echo.lat, echo.lng], {
-                    icon: L.divIcon({
-                        className: '', 
-                        html: `
-                            <div class="echo-map-bubble ${isPhoto ? 'photo-type' : ''}">
-                                ${iconHtml}
-                                <span>${displayText}</span>
-                            </div>
-                        `,
-                        iconSize: [100, 40], 
-                        iconAnchor: [10, 35] 
-                    })
-                }).addTo(map);
+                const marker = L.marker([echo.lat, echo.lng], {icon: echoIcon}).addTo(map);
                 
-                let popupContent = `<b>${echo.user}</b><br>${echo.text}`;
-                if(echo.image) popupContent += `<br><img src="${echo.image}" style="width:100px; border-radius:5px; margin-top:5px;">`;
+                let imgHtml = echo.image ? `<img src="${echo.image}" class="echo-popup-img">` : '';
+                
+                const popupContent = `
+                    <div style="text-align:center;">
+                        <div class="echo-tag">ECHO</div>
+                        <p class="echo-popup-text">"${echo.text}"</p>
+                        ${imgHtml}
+                        <small class="echo-popup-date">📅 ${echo.date}</small>
+                    </div>
+                `;
                 marker.bindPopup(popupContent);
             });
         }
