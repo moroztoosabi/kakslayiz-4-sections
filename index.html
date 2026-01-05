@@ -2,47 +2,737 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECHO - Map</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ECHO - Kendini Anda Hisset</title>
+    
+    <!-- Leaflet CSS (Map) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="style.css">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- 1. CORE VARIABLES & RESET --- */
+        :root {
+            --primary: #6c5ce7; /* Echo Purple */
+            --accent: #00b894;  /* Neon Green */
+            --dark: #1e1e2e;
+            --darker: #13131f;
+            --glass: rgba(30, 30, 46, 0.95); /* More opaque for better readability */
+            --text: #ffffff;
+            --danger: #ff7675;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--darker);
+            color: var(--text);
+            overflow: hidden; /* Prevent scrolling, app-like feel */
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* --- 2. LAYOUT LAYERS --- */
+        #app-container { position: relative; width: 100%; height: 100%; }
+        
+        /* Views */
+        .view-section {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none; /* Hidden by default */
+            padding-bottom: 90px; /* Space for bottom nav */
+        }
+        .view-section.active { display: block; }
+
+        /* Map View */
+        #map-view { z-index: 1; padding-bottom: 0; }
+        #map { height: 100%; width: 100%; background: #242424; }
+
+        /* AR View */
+        #ar-view { 
+            z-index: 2; 
+            background: #000;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            overflow: hidden;
+            padding-bottom: 0;
+        }
+        #camera-feed {
+            position: absolute;
+            min-width: 100%; min-height: 100%;
+            width: auto; height: auto;
+            object-fit: cover;
+            z-index: 0;
+        }
+        .ar-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+        /* Floating AR Echo Bubbles */
+        .ar-bubble {
+            position: absolute;
+            background: rgba(108, 92, 231, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 12px 18px;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255,255,255,0.3);
+            pointer-events: auto;
+            animation: float 3s infinite ease-in-out;
+            cursor: pointer;
+            max-width: 180px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+
+        /* Gallery View */
+        #gallery-view { 
+            z-index: 5; 
+            background: var(--darker); 
+            overflow-y: auto; 
+            padding-top: 80px;
+        }
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 2 columns for mobile */
+            gap: 10px;
+            padding: 15px;
+        }
+        .gallery-item {
+            background: #2d2d44;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        .gallery-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+        .gallery-info { padding: 10px; font-size: 0.8rem; }
+
+        /* PROFILE VIEW STYLES */
+        #profile-view {
+            z-index: 6;
+            background: var(--darker);
+            overflow-y: auto;
+            padding-top: 0; /* Header handles top spacing */
+        }
+        
+        .profile-header {
+            background: linear-gradient(180deg, rgba(108, 92, 231, 0.2) 0%, var(--darker) 100%);
+            padding: 80px 20px 20px 20px;
+            text-align: center;
+        }
+        
+        .profile-avatar {
+            width: 100px; height: 100px;
+            background: var(--primary);
+            border-radius: 50%;
+            margin: 0 auto 15px auto;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 3rem; font-weight: 800; color: white;
+            border: 4px solid var(--darker);
+            box-shadow: 0 0 20px rgba(108, 92, 231, 0.4);
+        }
+        
+        .profile-name { font-size: 1.5rem; font-weight: 800; margin-bottom: 5px; }
+        .profile-role { color: var(--accent); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 20px;}
+        
+        .profile-stats {
+            display: flex; justify-content: center; gap: 30px;
+            margin-bottom: 20px;
+        }
+        .stat-box { text-align: center; }
+        .stat-num { font-size: 1.2rem; font-weight: 800; }
+        .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; }
+
+        .profile-tabs {
+            display: flex; border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 10px;
+        }
+        .tab-item { flex: 1; text-align: center; padding: 15px; color: #888; cursor: pointer; position: relative; }
+        .tab-item.active { color: white; font-weight: 600; }
+        .tab-item.active::after {
+            content: ''; position: absolute; bottom: 0; left: 20%; right: 20%;
+            height: 3px; background: var(--primary); border-radius: 10px 10px 0 0;
+        }
+
+        .my-echo-list { padding: 0 15px; }
+        .my-echo-card {
+            background: #2d2d44;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex; gap: 15px;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .my-echo-thumb {
+            width: 50px; height: 50px;
+            background: #444; border-radius: 8px;
+            object-fit: cover;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.2rem; color: #aaa;
+        }
+        .my-echo-info { flex: 1; }
+        .delete-btn { color: var(--danger); background: none; border: none; padding: 5px; cursor: pointer; }
+
+
+        /* --- 3. UI COMPONENTS --- */
+        
+        /* Top Bar */
+        .top-bar {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            padding: 40px 20px 15px 20px; /* Extra top padding for notch */
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+        .logo-text { font-weight: 800; font-size: 1.2rem; pointer-events: auto; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .user-pill { 
+            background: rgba(255,255,255,0.2); 
+            backdrop-filter: blur(10px);
+            padding: 5px 12px; 
+            border-radius: 20px; 
+            font-size: 0.8rem; 
+            pointer-events: auto;
+            display: flex; align-items: center; gap: 5px;
+            cursor: pointer;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: absolute;
+            bottom: 25px; left: 15px; right: 15px;
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            border-radius: 30px;
+            height: 70px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .nav-item {
+            color: #a0a0b0;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-width: 50px;
+        }
+        .nav-item.active { color: var(--primary); transform: translateY(-2px); }
+        .nav-item span { font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* The Big "Drop" Button */
+        .nav-fab {
+            background: var(--primary);
+            width: 55px; height: 55px;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            color: white; font-size: 1.8rem;
+            transform: translateY(-25px);
+            box-shadow: 0 10px 25px rgba(108, 92, 231, 0.5);
+            border: 4px solid var(--darker);
+            cursor: pointer;
+        }
+        .nav-fab:active { transform: translateY(-22px) scale(0.95); }
+
+        /* Modals */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            display: none;
+            justify-content: center; align-items: flex-end; /* Sheet style */
+        }
+        .modal.open { display: flex; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .modal-content {
+            background: var(--dark);
+            width: 100%;
+            max-width: 500px;
+            border-radius: 25px 25px 0 0;
+            padding: 25px;
+            position: relative;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Forms */
+        input, textarea {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            font-family: inherit;
+        }
+        textarea { height: 100px; resize: none; }
+        
+        .btn {
+            width: 100%; padding: 15px; border: none; border-radius: 12px;
+            font-weight: 700; cursor: pointer; font-size: 1rem;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-outline { background: transparent; border: 1px solid #555; color: #aaa; margin-top: 10px; }
+        
+        /* Photo Upload */
+        .photo-upload-box {
+            border: 2px dashed #444;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+            position: relative;
+        }
+        .photo-upload-box img {
+            max-width: 100%; max-height: 200px; border-radius: 8px; display: none; margin-top: 10px;
+        }
+
+        /* Login Screen */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--darker); z-index: 3000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 30px;
+        }
+        .login-logo { font-size: 4rem; font-weight: 900; background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+
+    </style>
 </head>
 <body>
 
-    <div id="map"></div>
+    <!-- --- LOGIN SCREEN --- -->
+    <div id="login-screen">
+        <div class="login-logo">ECHO</div>
+        <p style="color:#888; margin-bottom:40px;">Kendini anda hisset.</p>
+        <input type="text" id="usernameInput" placeholder="Kullanıcı Adı" style="max-width: 300px; text-align:center;">
+        <button class="btn btn-primary" onclick="login()" style="max-width: 300px;">Giriş Yap</button>
+    </div>
 
-    <div class="ui-layer">
+    <div id="app-container" style="display:none;">
         
-        <div class="nav-bar">
-            <div class="profile-pill">
-                <span id="userDisplay">Misafir</span>
-                <a href="#" onclick="logout()" class="logout-btn">Çıkış</a>
+        <!-- --- TOP BAR --- -->
+        <div class="top-bar">
+            <div class="logo-text">ECHO</div>
+            <div class="user-pill" onclick="switchView('profile')">
+                <i class="ph ph-user"></i>
+                <span id="displayUser">User</span>
             </div>
-            <div style="font-weight:800; color: white;">ECHO</div>
         </div>
 
-        <div class="action-bar">
-            <button class="btn btn-secondary" onclick="alert('AR Kamera Modu henüz aktif değil.')">
-                📷 AR Modu
-            </button>
-            <button class="btn btn-primary" onclick="openDropModal()">
-                📍 İz Bırak
-            </button>
+        <!-- --- VIEWS --- -->
+        
+        <!-- 1. Map View -->
+        <div id="map-view" class="view-section active">
+            <div id="map"></div>
         </div>
 
-        <div id="dropModal" class="modal">
-            <h3 style="margin-top:0;">Buraya bir not bırak</h3>
-            <textarea id="echoText" placeholder="Hikayen nedir?"></textarea>
-            <div style="display:flex; gap:10px;">
-                <button class="btn btn-primary" style="flex:1" onclick="saveEcho()">Paylaş</button>
-                <button class="btn btn-secondary" style="flex:1" onclick="closeDropModal()">İptal</button>
+        <!-- 2. AR View -->
+        <div id="ar-view" class="view-section">
+            <video id="camera-feed" autoplay playsinline muted></video>
+            <div class="ar-overlay" id="ar-overlay-container">
+                <!-- Bubbles will be injected here via JS -->
+            </div>
+            <div style="position: absolute; bottom: 120px; width: 100%; text-align: center; color: rgba(255,255,255,0.5); font-size: 0.8rem;">
+                <i class="ph ph-compass"></i> Cihazını etrafa çevir
+            </div>
+        </div>
+
+        <!-- 3. Gallery View -->
+        <div id="gallery-view" class="view-section">
+            <h2 style="padding-left: 20px; margin-bottom: 5px;">Echo Akışı</h2>
+            <div class="gallery-grid" id="gallery-grid">
+                <!-- JS will populate this -->
+            </div>
+        </div>
+
+        <!-- 4. Profile View -->
+        <div id="profile-view" class="view-section">
+            <div class="profile-header">
+                <div class="profile-avatar" id="profile-initial">A</div>
+                <div class="profile-name" id="profile-name-text">Ali Yılmaz</div>
+                <div class="profile-role">Yeni Medya Kaşifi</div>
+                
+                <div class="profile-stats">
+                    <div class="stat-box">
+                        <div class="stat-num" id="stat-count">0</div>
+                        <div class="stat-label">İzlerim</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-num">14</div>
+                        <div class="stat-label">Keşfedilen</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-tabs">
+                <div class="tab-item active">Bıraktığım İzler</div>
+                <div class="tab-item">Kaydedilenler</div>
+            </div>
+
+            <div class="my-echo-list" id="my-echo-list">
+                <!-- User's echoes go here -->
+            </div>
+            
+            <div style="padding: 20px;">
+                <button class="btn btn-outline" onclick="logout()" style="border-color: #ff7675; color: #ff7675;">Çıkış Yap</button>
+            </div>
+        </div>
+
+
+        <!-- --- BOTTOM NAV --- -->
+        <div class="bottom-nav">
+            <div class="nav-item active" onclick="switchView('map')" id="nav-map">
+                <i class="ph ph-map-trifold"></i>
+                <span>Harita</span>
+            </div>
+            
+            <div class="nav-item" onclick="switchView('ar')" id="nav-ar">
+                <i class="ph ph-camera"></i>
+                <span>AR</span>
+            </div>
+
+            <div class="nav-fab" onclick="openDropModal()">
+                <i class="ph ph-plus"></i>
+            </div>
+            
+            <div class="nav-item" onclick="switchView('gallery')" id="nav-gallery">
+                <i class="ph ph-images"></i>
+                <span>Galeri</span>
+            </div>
+
+            <div class="nav-item" onclick="switchView('profile')" id="nav-profile">
+                <i class="ph ph-user-circle"></i>
+                <span>Profil</span>
+            </div>
+        </div>
+
+        <!-- --- DROP MODAL --- -->
+        <div id="drop-modal" class="modal">
+            <div class="modal-content">
+                <h2 style="margin-top:0;">İz Bırak</h2>
+                
+                <textarea id="drop-text" placeholder="Ne düşünüyorsun?"></textarea>
+                
+                <div class="photo-upload-box" onclick="document.getElementById('drop-file').click()">
+                    <i class="ph ph-camera-plus" style="font-size: 2rem; color: #888;"></i>
+                    <p style="margin:5px 0; color:#888; font-size:0.8rem;">Fotoğraf Ekle</p>
+                    <img id="preview-img">
+                </div>
+                <input type="file" id="drop-file" accept="image/*" hidden onchange="handleFileSelect(this)">
+
+                <button class="btn btn-primary" onclick="saveEcho()">Paylaş</button>
+                <button class="btn btn-outline" onclick="closeDropModal()">İptal</button>
             </div>
         </div>
 
     </div>
 
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="app.js"></script>
+
+    <script>
+        // --- STATE & DATA ---
+        let currentUser = null;
+        let map = null;
+        let userMarker = null;
+        let userPos = { lat: 41.0082, lng: 28.9784 }; // Default Istanbul
+        let echoes = JSON.parse(localStorage.getItem('echo_db')) || [];
+        let currentPhotoBase64 = null;
+        let cameraStream = null;
+
+        // --- AUTH SYSTEM ---
+        function checkAuth() {
+            const savedUser = localStorage.getItem('echo_user');
+            if (savedUser) {
+                currentUser = savedUser;
+                document.getElementById('displayUser').innerText = currentUser;
+                document.getElementById('profile-name-text').innerText = currentUser;
+                document.getElementById('profile-initial').innerText = currentUser.charAt(0).toUpperCase();
+                
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-container').style.display = 'block';
+                initApp();
+            }
+        }
+        
+        function login() {
+            const input = document.getElementById('usernameInput').value;
+            if(!input) return alert("İsim giriniz");
+            localStorage.setItem('echo_user', input);
+            checkAuth();
+        }
+
+        function logout() {
+            localStorage.removeItem('echo_user');
+            location.reload();
+        }
+
+        // --- INIT APP ---
+        function initApp() {
+            initMap();
+            startLocationTracking();
+            renderGallery();
+            renderProfile();
+            setupARBubbles();
+        }
+
+        // --- MAP SYSTEM ---
+        function initMap() {
+            map = L.map('map', { zoomControl: false }).setView([userPos.lat, userPos.lng], 15);
+            
+            // Dark Map Tiles
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: 'ECHO',
+                maxZoom: 20
+            }).addTo(map);
+
+            // User Marker (Pulsing Dot)
+            const userIcon = L.divIcon({
+                className: 'user-marker',
+                html: `<div style="width:16px; height:16px; background:#6c5ce7; border:3px solid white; border-radius:50%; box-shadow: 0 0 15px #6c5ce7;"></div>`,
+                iconSize: [20, 20]
+            });
+            userMarker = L.marker([userPos.lat, userPos.lng], {icon: userIcon}).addTo(map);
+
+            renderMapEchoes();
+        }
+
+        function startLocationTracking() {
+            if(navigator.geolocation) {
+                navigator.geolocation.watchPosition(pos => {
+                    userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    if(map) userMarker.setLatLng([userPos.lat, userPos.lng]);
+                }, err => console.log("GPS Error", err));
+            }
+        }
+
+        // --- NAVIGATION ---
+        function switchView(viewName) {
+            // Hide all views
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+            // Show selected
+            document.getElementById(viewName + '-view').classList.add('active');
+            
+            // Highlight nav icon
+            const navId = 'nav-' + viewName;
+            const navEl = document.getElementById(navId);
+            if(navEl) navEl.classList.add('active');
+
+            // View Specific Logic
+            if(viewName === 'ar') startCamera();
+            else stopCamera();
+
+            if(viewName === 'profile') renderProfile();
+        }
+
+        // --- AR SYSTEM ---
+        async function startCamera() {
+            const video = document.getElementById('camera-feed');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                video.srcObject = stream;
+                cameraStream = stream;
+            } catch (err) {
+                alert("Kamera izni gerekiyor veya HTTPS kullanılmıyor. (Localhost deneyin)");
+            }
+        }
+
+        function stopCamera() {
+            if(cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+        }
+
+        function setupARBubbles() {
+            const container = document.getElementById('ar-overlay-container');
+            container.innerHTML = ''; 
+            
+            // Randomly float the last 5 echoes
+            echoes.slice(-5).forEach(echo => {
+                const bubble = document.createElement('div');
+                bubble.className = 'ar-bubble';
+                const top = Math.random() * 60 + 20; 
+                const left = Math.random() * 80 + 10;
+                
+                bubble.style.top = top + '%';
+                bubble.style.left = left + '%';
+                bubble.innerHTML = echo.image 
+                    ? `<i class="ph ph-image"></i> ${echo.user}` 
+                    : `<i class="ph ph-chat-text"></i> ${echo.text.substring(0,12)}...`;
+                
+                container.appendChild(bubble);
+            });
+        }
+
+        // --- PHOTO & UPLOAD SYSTEM ---
+        function openDropModal() {
+            document.getElementById('drop-modal').classList.add('open');
+        }
+        function closeDropModal() {
+            document.getElementById('drop-modal').classList.remove('open');
+            document.getElementById('drop-text').value = '';
+            document.getElementById('preview-img').style.display = 'none';
+            currentPhotoBase64 = null;
+        }
+
+        function handleFileSelect(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentPhotoBase64 = e.target.result;
+                    const img = document.getElementById('preview-img');
+                    img.src = currentPhotoBase64;
+                    img.style.display = 'block';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function saveEcho() {
+            const text = document.getElementById('drop-text').value;
+            if(!text && !currentPhotoBase64) return alert("Boş içerik gönderilemez.");
+
+            const newEcho = {
+                id: Date.now(),
+                user: currentUser,
+                text: text,
+                image: currentPhotoBase64,
+                lat: userPos.lat,
+                lng: userPos.lng,
+                date: new Date().toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})
+            };
+
+            echoes.push(newEcho);
+            localStorage.setItem('echo_db', JSON.stringify(echoes));
+
+            // Refresh all views
+            renderMapEchoes();
+            renderGallery();
+            renderProfile();
+            closeDropModal();
+            alert("Echo bırakıldı! 📍");
+        }
+
+        function deleteEcho(id) {
+            if(confirm('Bu izi silmek istiyor musunuz?')) {
+                echoes = echoes.filter(e => e.id !== id);
+                localStorage.setItem('echo_db', JSON.stringify(echoes));
+                renderProfile();
+                renderMapEchoes();
+                renderGallery();
+            }
+        }
+
+        // --- RENDERERS ---
+        function renderMapEchoes() {
+            if(!map) return;
+            // Note: In a real app we would clear markers first. 
+            // For prototype we rely on simple map logic.
+            echoes.forEach(echo => {
+                const iconHtml = echo.image ? '📷' : '💬';
+                const marker = L.marker([echo.lat, echo.lng], {
+                    icon: L.divIcon({
+                        className: 'echo-marker',
+                        html: `<div style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">${iconHtml}</div>`
+                    })
+                }).addTo(map);
+                
+                let popupContent = `<b>${echo.user}</b><br>${echo.text}`;
+                if(echo.image) popupContent += `<br><img src="${echo.image}" style="width:100px; border-radius:5px; margin-top:5px;">`;
+                marker.bindPopup(popupContent);
+            });
+        }
+
+        function renderGallery() {
+            const grid = document.getElementById('gallery-grid');
+            grid.innerHTML = '';
+            
+            const photos = echoes.filter(e => e.image).reverse();
+
+            if(photos.length === 0) {
+                grid.innerHTML = '<p style="color:#666; width:200%; text-align:center; padding:20px;">Henüz fotoğraf yok.</p>';
+                return;
+            }
+
+            photos.forEach(echo => {
+                const card = document.createElement('div');
+                card.className = 'gallery-item';
+                card.innerHTML = `
+                    <img src="${echo.image}" loading="lazy">
+                    <div class="gallery-info">
+                        <strong style="color:var(--primary)">${echo.user}</strong>
+                        <div style="color:#aaa; font-size:0.7rem;">${echo.date}</div>
+                        <div style="margin-top:4px;">${echo.text}</div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderProfile() {
+            const list = document.getElementById('my-echo-list');
+            list.innerHTML = '';
+            
+            const myEchoes = echoes.filter(e => e.user === currentUser).reverse();
+            document.getElementById('stat-count').innerText = myEchoes.length;
+
+            if(myEchoes.length === 0) {
+                list.innerHTML = '<p style="color:#666; text-align:center; padding:20px;">Henüz hiç iz bırakmadın.</p>';
+                return;
+            }
+
+            myEchoes.forEach(echo => {
+                const thumb = echo.image 
+                    ? `<img src="${echo.image}" class="my-echo-thumb">`
+                    : `<div class="my-echo-thumb"><i class="ph ph-chat-text"></i></div>`;
+                
+                const card = document.createElement('div');
+                card.className = 'my-echo-card';
+                card.innerHTML = `
+                    ${thumb}
+                    <div class="my-echo-info">
+                        <div style="font-weight:600; font-size:0.9rem;">${echo.text ? echo.text.substring(0,25) + (echo.text.length>25?'...':'') : 'Fotoğraf'}</div>
+                        <div style="color:#888; font-size:0.75rem;">${echo.date} • Konumunda</div>
+                    </div>
+                    <button class="delete-btn" onclick="deleteEcho(${echo.id})"><i class="ph ph-trash"></i></button>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        // Start
+        checkAuth();
+
+    </script>
 </body>
 </html>
