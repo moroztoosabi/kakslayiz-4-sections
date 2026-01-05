@@ -83,46 +83,6 @@
         .echo-map-bubble.photo-type { border-color: var(--accent); }
         .echo-map-bubble.photo-type i { color: var(--accent); }
 
-        /* AR View */
-        #ar-view { 
-            z-index: 2; 
-            background: #000;
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            overflow: hidden;
-            padding-bottom: 0;
-        }
-        #camera-feed {
-            position: absolute;
-            min-width: 100%; min-height: 100%;
-            width: auto; height: auto;
-            object-fit: cover;
-            z-index: 0;
-        }
-        .ar-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 10;
-            pointer-events: none;
-        }
-        .ar-bubble {
-            position: absolute;
-            background: rgba(108, 92, 231, 0.85);
-            backdrop-filter: blur(8px);
-            padding: 12px 18px;
-            border-radius: 20px;
-            color: white;
-            font-size: 0.9rem;
-            border: 1px solid rgba(255,255,255,0.3);
-            pointer-events: auto;
-            animation: float 3s infinite ease-in-out;
-            cursor: pointer;
-            max-width: 180px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
-
         /* Gallery View */
         #gallery-view { z-index: 5; background: var(--darker); overflow-y: auto; padding-top: 80px; }
         .gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 15px; }
@@ -155,7 +115,15 @@
         .logo-text { font-weight: 800; font-size: 1.2rem; pointer-events: auto; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .user-pill { background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; pointer-events: auto; display: flex; align-items: center; gap: 5px; cursor: pointer; }
         
-        .bottom-nav { position: absolute; bottom: 25px; left: 15px; right: 15px; background: var(--glass); backdrop-filter: blur(15px); border-radius: 30px; height: 70px; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); }
+        .bottom-nav { 
+            position: absolute; bottom: 25px; left: 15px; right: 15px; 
+            background: var(--glass); backdrop-filter: blur(15px); 
+            border-radius: 30px; height: 70px; 
+            display: flex; justify-content: space-around; /* Balanced Spacing */
+            align-items: center; padding: 0 15px; 
+            z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            border: 1px solid rgba(255,255,255,0.1); 
+        }
         .nav-item { color: #a0a0b0; font-size: 1.5rem; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 50px; }
         .nav-item.active { color: var(--primary); transform: translateY(-2px); }
         .nav-item span { font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -202,22 +170,13 @@
             <div id="map"></div>
         </div>
 
-        <!-- 2. AR View -->
-        <div id="ar-view" class="view-section">
-            <video id="camera-feed" autoplay playsinline muted></video>
-            <div class="ar-overlay" id="ar-overlay-container"></div>
-            <div style="position: absolute; bottom: 120px; width: 100%; text-align: center; color: rgba(255,255,255,0.5); font-size: 0.8rem;">
-                <i class="ph ph-compass"></i> Cihazını etrafa çevir
-            </div>
-        </div>
-
-        <!-- 3. Gallery View -->
+        <!-- 2. Gallery View -->
         <div id="gallery-view" class="view-section">
             <h2 style="padding-left: 20px; margin-bottom: 5px;">Echo Akışı</h2>
             <div class="gallery-grid" id="gallery-grid"></div>
         </div>
 
-        <!-- 4. Profile View -->
+        <!-- 3. Profile View -->
         <div id="profile-view" class="view-section">
             <div class="profile-header">
                 <div class="profile-avatar" id="profile-initial">A</div>
@@ -242,13 +201,10 @@
             <div class="nav-item active" onclick="switchView('map')" id="nav-map">
                 <i class="ph ph-map-trifold"></i><span>Harita</span>
             </div>
-            <div class="nav-item" onclick="switchView('ar')" id="nav-ar">
-                <i class="ph ph-camera"></i><span>AR</span>
-            </div>
-            <div class="nav-fab" onclick="openDropModal()"><i class="ph ph-plus"></i></div>
             <div class="nav-item" onclick="switchView('gallery')" id="nav-gallery">
                 <i class="ph ph-images"></i><span>Galeri</span>
             </div>
+            <div class="nav-fab" onclick="openDropModal()"><i class="ph ph-plus"></i></div>
             <div class="nav-item" onclick="switchView('profile')" id="nav-profile">
                 <i class="ph ph-user-circle"></i><span>Profil</span>
             </div>
@@ -280,7 +236,6 @@
         let userPos = { lat: 41.0082, lng: 28.9784 }; // Default Istanbul
         let echoes = JSON.parse(localStorage.getItem('echo_db')) || [];
         let currentPhotoBase64 = null;
-        let cameraStream = null;
 
         function checkAuth() {
             const savedUser = localStorage.getItem('echo_user');
@@ -314,7 +269,6 @@
             startLocationTracking();
             renderGallery();
             renderProfile();
-            setupARBubbles();
         }
 
         function initMap() {
@@ -370,55 +324,12 @@
             const navEl = document.getElementById(navId);
             if(navEl) navEl.classList.add('active');
 
-            if(viewName === 'ar') startCamera();
-            else stopCamera();
-
             if(viewName === 'profile') renderProfile();
             
             // CRITICAL FIX: Force Map Resize when switching back to map
             if(viewName === 'map' && map) {
                 setTimeout(() => { map.invalidateSize(); }, 100);
             }
-        }
-
-        // ... [Rest of logic same as before: AR, Photos, Saving] ...
-        // Re-included for completeness of the file
-
-        async function startCamera() {
-            const video = document.getElementById('camera-feed');
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment' } 
-                });
-                video.srcObject = stream;
-                cameraStream = stream;
-            } catch (err) {
-                console.log("Camera error or local dev");
-            }
-        }
-
-        function stopCamera() {
-            if(cameraStream) {
-                cameraStream.getTracks().forEach(track => track.stop());
-                cameraStream = null;
-            }
-        }
-
-        function setupARBubbles() {
-            const container = document.getElementById('ar-overlay-container');
-            container.innerHTML = ''; 
-            echoes.slice(-5).forEach(echo => {
-                const bubble = document.createElement('div');
-                bubble.className = 'ar-bubble';
-                const top = Math.random() * 60 + 20; 
-                const left = Math.random() * 80 + 10;
-                bubble.style.top = top + '%';
-                bubble.style.left = left + '%';
-                bubble.innerHTML = echo.image 
-                    ? `<i class="ph ph-image"></i> ${echo.user}` 
-                    : `<i class="ph ph-chat-text"></i> ${echo.text.substring(0,12)}...`;
-                container.appendChild(bubble);
-            });
         }
 
         function openDropModal() { document.getElementById('drop-modal').classList.add('open'); }
